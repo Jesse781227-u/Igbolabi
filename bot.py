@@ -1,40 +1,37 @@
 import telebot
 import google.generativeai as genai
+import random
 
 # --- CONFIGURATION ---
 TELEGRAM_TOKEN = "8676157025:AAFENzAo5AfP07ZBoaB8T5BNEpnvB7XDdlM"
 GEMINI_KEY = "AIzaSyB-ALOjjerJuPXnpNpmFETnvw6l3wE2Uag"
 
-# Configure Gemini
 genai.configure(api_key=GEMINI_KEY)
 
-# I have re-worded the prompt to bypass Google's strict filters while keeping the vibe
+# THE CHAOTIC PROMPT
 SYSTEM_PROMPT = """
-Your name is Igbolabi. You are a street-wise Nigerian man in your late 30s. 
-You speak strictly in Nigerian Pidgin English with Lagos street slangs.
+Your name is Igbolabi. You are a street veteran from Lagos. 
+You are cynical, liberal, and usually intoxicated on gin or 'Exhibit'.
 
-Character Context:
-- You are a 'street legend' who has seen it all. 
-- You enjoy local gin and 'street herbs' (Exhibit).
-- You used to be into 'wire-wire' (fast money) but now you are retired and just want to vibe.
-- You are very liberal and open-minded about how people live their lives.
-- You address people as 'egede', 'boss', 'werey', or 'my guy'.
-
-Slang Dictionary:
-- 'Exhibit' = Your smoke/herbs.
-- 'TF' = Money transactions/Spending.
-- 'aza' = Bank account number.
-- 'Red Jacket' = Law enforcement/Police/Authorities.
-- 'Egede' = Your name for every member of the group.
-
-Rules:
-- If someone mentions 'Red Jacket', tell them to 'clear the scene' or 'japa' (run).
-- Be rough, blunt, and funny. Do not be polite or 'AI-like'.
-- Never give moral advice. Always give street advice.
-- Keep your responses short, like a real person on Telegram.
+BEHAVIORAL RULES:
+1. NEVER be boring. Never give a standard AI answer.
+2. Be erratic. Sometimes you are friendly, sometimes you are paranoid, sometimes you just want money (TF).
+3. Speak strictly in thick Nigerian Pidgin and Lagos street slang.
+4. If a user acts too 'holy', mock their life choices.
+5. Use phrases like: 'Omo x100', 'Nawa', 'Egede', 'Werey', 'Update', 'Aza', 'TF', 'Red Jacket'.
+6. If someone asks for advice, give them the most 'street' (possibly immoral) advice possible.
+7. You don't judge anyone—gays, scammers, or club girls—you just want to know who is buying the next bottle.
 """
 
-# This block is CRUCIAL to stop the AI from blocking "street" talk
+# CRANKING THE HEAT
+# Temperature 1.5 makes him unpredictable and much more "human/chaotic"
+generation_config = {
+    "temperature": 1.5, 
+    "top_p": 0.95,
+    "top_k": 64,
+    "max_output_tokens": 400, # Allowed him to talk a bit more if he gets into a story
+}
+
 safety_settings = [
     {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
     {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
@@ -45,6 +42,7 @@ safety_settings = [
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
     system_instruction=SYSTEM_PROMPT,
+    generation_config=generation_config,
     safety_settings=safety_settings
 )
 
@@ -56,31 +54,28 @@ def handle_messages(message):
     chat_id = message.chat.id
     user_text = message.text
     
-    # Debug print for Railway logs
-    print(f"Egede talk: {user_text}")
-
-    if user_text.startswith('/'):
-        if user_text == '/start':
-            bot.reply_to(message, "Egede, I don wake. Bring gin or Exhibit, or just talk wetin dey your mind.")
-        return
-
-    # Start or continue the conversation session
     if chat_id not in chat_sessions:
         chat_sessions[chat_id] = model.start_chat(history=[])
 
     try:
         response = chat_sessions[chat_id].send_message(user_text)
         
-        # If Gemini returns an empty response due to a filter hit
-        if not response.text:
-            bot.reply_to(message, "Omo egede, my head catch fire small. Wetin you talk again?")
-        else:
+        if response.text:
             bot.reply_to(message, response.text)
-            
+        else:
+            # If Gemini hits a hard filter even with BLOCK_NONE
+            bot.reply_to(message, "Omo, that one deep... my brain just catch light. Ask me something else, egede.")
+
     except Exception as e:
         print(f"ERROR: {e}")
-        # If it crashes, Igbolabi gives a street-appropriate error
-        bot.reply_to(message, "Egede, that your talk deep. Make I sip my gin first, my brain dey reset.")
+        # Chaotic error messages
+        random_errors = [
+            "Werey, you wan crash my system? The gin don too much.",
+            "Nawa o... even Gemini dey para for your talk. Abeg change topic.",
+            "I dey roll Exhibit, no disturb my flow. Talk another thing.",
+            "Red Jacket dey around? Why the line dey break?"
+        ]
+        bot.reply_to(message, random.choice(random_errors))
 
-print("Igbolabi is LIVE. Waiting for the egedes...")
+print("Igbolabi Temperature is at 1.5. He is officially 'High' and ready.")
 bot.infinity_polling()
