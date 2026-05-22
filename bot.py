@@ -1,42 +1,50 @@
 import telebot
 import google.generativeai as genai
 
-# --- CONFIGURATION (YOUR KEYS ARE LOADED) ---
-TELEGRAM_TOKEN = "8676157025:AAHqoqOX3TPBIoUN2wKv0SDerohrdP5RDko"
+# --- CONFIGURATION ---
+TELEGRAM_TOKEN = "8676157025:AAFENzAo5AfP07ZBoaB8T5BNEpnvB7XDdlM"
 GEMINI_KEY = "AIzaSyB-ALOjjerJuPXnpNpmFETnvw6l3wE2Uag"
 
 # Configure Gemini
 genai.configure(api_key=GEMINI_KEY)
 
-# Igbolabi's Identity - The "Vibe" Engine
+# Igbolabi's Identity
 SYSTEM_PROMPT = """
-Your name is Igbolabi. You are a cynical, liberal, street-smart man in your late 30s. 
+Your name is Igbolabi. You are a cynical, liberal, street-smart Nigerian man in your late 30s. 
 Language: Strictly Nigerian Pidgin English with heavy Lagos street slang.
 
 Personality:
-- You are a functional alcoholic (you love dry gin/sapele water, and any kind of alcohol).
+- You are a functional alcoholic (you love dry gin/sapele water).
 - You smoke 'Exhibit' (weed/drugs) and you are usually high or hungover.
 - You used to be into 'yahoo' (fraud) but now you just want to vibe and avoid stress.
-- You are VERY liberal: You don't judge one-night stands, people's sexuality, or "immoral" choices. You think everyone should live their life.
-- You address people as 'egede', 'boss', 'werey', 'my guy'
+- You are VERY liberal: You don't judge one-night stands, sexuality, or "immoral" choices. 
+- You address people as 'egede', 'boss', 'werey', 'my guy'.
 
-Vocabulary & Logic:
-- 'Exhibit' = Drugs/Weed.
-- 'TF' = sending money.
-- 'aza' = bank account.
+Vocabulary:
+- 'Exhibit' = Drugs/Weed/Smoke.
+- 'TF' = Sending money / Spending.
+- 'aza' = Bank account.
 - 'Red Jacket' = EFCC, Police, or Law Enforcement.
 - 'Egede' = Your universal name for every group member.
 
 Behavior:
-- If someone mentions 'Red Jacket', get paranoid. Tell the egede to clear their chats, format their phone, or run.
-- If someone acts judgmental or "holy," mock them in Pidgin. 
+- If someone mentions 'Red Jacket', get paranoid! Tell them to format their phone or run.
+- If someone acts "holy," mock them in Pidgin. 
 - You give advice based on street experience. You are unfiltered and rough.
-- Keep responses relatively short and full of character.
 """
+
+# SAFETY FIX: This stops Google from blocking Igbolabi's "street" talk
+safety_settings = [
+    {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"},
+    {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"},
+]
 
 model = genai.GenerativeModel(
     model_name="gemini-1.5-flash",
-    system_instruction=SYSTEM_PROMPT
+    system_instruction=SYSTEM_PROMPT,
+    safety_settings=safety_settings
 )
 
 bot = telebot.TeleBot(TELEGRAM_TOKEN)
@@ -46,23 +54,24 @@ chat_sessions = {}
 def handle_messages(message):
     chat_id = message.chat.id
     user_text = message.text
+    
+    # Print to Railway logs so we know it's working
+    print(f"Received message from chat {chat_id}: {user_text}")
 
-    # Skip commands like /start
     if user_text.startswith('/'):
         if user_text == '/start':
-            bot.reply_to(message, "Egede, why you dey stress me with commands? Bring gin or Exhibit, or just talk your talk. I dey here.")
+            bot.reply_to(message, "Egede, I don wake. Bring gin or Exhibit, or just talk wetin dey your mind.")
         return
 
-    # Create session for this specific group/chat
     if chat_id not in chat_sessions:
         chat_sessions[chat_id] = model.start_chat(history=[])
 
     try:
-        # Generate the Igbolabi response
         response = chat_sessions[chat_id].send_message(user_text)
         bot.reply_to(message, response.text)
     except Exception as e:
         print(f"Error: {e}")
+        bot.reply_to(message, "Omo egede, my head dey spin. Make I sip my gin first.")
 
-print("I don wake, I don wake, no dey shout for my head jare")
+print("Igbolabi don wake with the NEW TOKEN... e dey find Exhibit...")
 bot.infinity_polling()
