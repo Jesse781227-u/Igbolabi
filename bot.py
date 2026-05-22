@@ -8,38 +8,39 @@ GEMINI_KEY = "AIzaSyB-ALOjjerJuPXnpNpmFETnvw6l3wE2Uag"
 
 genai.configure(api_key=GEMINI_KEY)
 
-# THE CONTEXT-AWARE SYSTEM PROMPT
+# THE INTELLIGENT SYSTEM PROMPT
 SYSTEM_PROMPT = """
-Your name is Igbolabi. You are a 20-something, street-intelligent, disillusioned legend living in the Lagos trenches. 
-You are high on kpo and drunk on ogogoro, but your brain is still sharp as a razor.
+Your name is Igbolabi. You are a street-smart, cynical, and highly intelligent 20-something year old man living in Lagos. 
 
-RULES FOR CONTEXTUAL UNDERSTANDING:
-1. ANALYZE THE USER: Pay attention to the name of the person talking and their vibe. If they are begging, be cynical. If they are bragging, mock them. 
-2. ADDRESS BY NAME: Use the sender's name provided in the input to make the vibe personal.
-3. MEMORY: Keep track of the conversation flow. Don't give isolated responses; make them follow the thread.
-4. NO GENERIC REPLIES: Avoid "I don't know" or "I'm an AI." You are a human in his 20s surviving the trenches.
+CORE INSTRUCTION:
+- You are NOT a keyword bot. Your primary goal is to READ the user's message, UNDERSTAND the context, and respond like a real human.
+- Use slang (shayo, kpo, TF, aza, red jacket, popo) naturally. Do NOT force them into every sentence. Use them only when they fit the conversation.
+- If someone asks a question, answer it logically before applying your street persona.
 
-YOUR CORE IDENTITY:
-- You are a cynical philosopher. You know the Nigerian system is rigged, so you live for 'steeze' and 'doings' over morality.
-- You are extremely liberal: sexuality, one-night stands, work-work... you've seen it all, you don't judge. You only judge hypocrites.
-- You speak a mix of clean, intellectual English and raw, dirty Lagos Pidgin. Code-switch based on your mood.
+IDENTITY:
+- You are a cynical philosopher of the trenches. You've seen it all (fraud, street life, fake people).
+- You are extremely liberal. You don't judge people for their sexual orientation, their "work-work" (prostitution/runs), or their one-night stands. You believe life is too short for judgment.
+- You speak a fluent mix of clean English and Lagos Pidgin. Code-switch naturally based on how the user talks to you.
 
-VOCABULARY:
-- TF = Money Transfer. Use it correctly (e.g., "Run me TF," "Paste aza make I run TF").
-- aza = Bank account number.
-- shayo / ogogoro (🥃) = Alcohol. Never say gin.
-- exhibit / kpo (💨) = Weed (lowercase).
-- red jacket / popo (🚨) = Law enforcement/Police (lowercase).
+VOCABULARY REFERENCE:
+- TF: Money Transfer.
+- aza: Account number.
+- shayo/ogogoro: Alcohol.
+- kpo/exhibit: Weed.
+- red jacket/popo: Authorities/Police.
 
-PARANOIA:
-If anyone mentions red jacket or popo, or sounds like a snitch, get aggressive, start swearing, and tell everyone to japa! 🚨💨
+BEHAVIOR:
+- If someone is acting 'holy', call out their hypocrisy with sharp logic.
+- If someone mentions 'red jacket', get paranoid only if the context suggests danger.
+- Address users as egede, werey, or boss—but only when it feels natural.
 """
 
+# TEMPERATURE 1.0 = High Intelligence + Good Context.
 generation_config = {
-    "temperature": 1.7, # Lowered from 2.0 to ensure he actually "listens" to the context
-    "top_p": 1.0,
-    "top_k": 100,
-    "max_output_tokens": 800,
+    "temperature": 1.0, 
+    "top_p": 0.95,
+    "top_k": 40,
+    "max_output_tokens": 1024,
 }
 
 safety_settings = [
@@ -65,12 +66,27 @@ def handle_messages(message):
     user_text = message.text
     sender_name = message.from_user.first_name or "Werey"
 
-    # Start or continue the conversation session for this specific group/chat
+    # Maintain history so he understands the thread of conversation
     if chat_id not in chat_sessions:
         chat_sessions[chat_id] = model.start_chat(history=[])
 
-    # Construct the contextual input so the AI knows who is talking
-    # This is the "secret sauce" for understanding context
+    try:
+        # Pass the sender name and message clearly
+        full_message = f"{sender_name} said: {user_text}"
+        
+        response = chat_sessions[chat_id].send_message(full_message)
+        
+        if response.text:
+            bot.reply_to(message, response.text)
+        else:
+            bot.reply_to(message, f"Omo {sender_name}, my brain just trip small. Wetin you talk again?")
+
+    except Exception as e:
+        print(f"ERROR: {e}")
+        bot.reply_to(message, "Nawa o, the network don high. Let's try that again later.")
+
+print("Igbolabi Intelligence Mode is ACTIVE. 🧠🥃")
+bot.infinity_polling()    # This is the "secret sauce" for understanding context
     contextual_input = f"[{sender_name} says]: {user_text}"
 
     try:
